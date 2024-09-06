@@ -9,9 +9,15 @@ import SwiftUI
 
 @main
 struct ios_examplesApp: App {
+@State private var applicationData = ApplicationData()
+@State private var tableData = TableData()
+
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            //ContentView()
+            //    .environment(applicationData)
+            TableView()
+                .environment(TableData())
         }
     }
 }
