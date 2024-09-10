@@ -6,54 +6,106 @@
 //
 
 import SwiftUI
+import Foundation
+
+enum SearchScope {
+    case title, author
+}
+
+struct Token: Identifiable, Equatable {
+    let id = UUID()
+    let name: String
+}
 
 struct ContentView: View {
     @Environment(ApplicationData.self) var applicationData: ApplicationData
-    @State private var selectedBookIDs: Set<Book.ID> = []
-
-    let colors = [.white, Color(white: 0.95)]
-
-    var booksByInitial: [(key: String, value: [Book])] {
-        let listGroup: [String: [Book]] = Dictionary(grouping: applicationData.books, by: {
-            let first = String($0.title.prefix(1))
-            if first.range(of: "\\p{Hangul}", options: .regularExpression) != nil {
-                let firstConsonant = first.unicodeScalars.first!.value
-                if firstConsonant >= 0xAC00 && firstConsonant <= 0xD7A3 {
-                    let index = (firstConsonant - 0xAC00) / 28 / 21
-                    let consonant = UnicodeScalar(0x1100 + index)!
-                    return String(consonant)
-                } else {
-                    return first.uppercased()
-                }
-            }
-            return first.uppercased()
-        })
-        return listGroup.sorted(by: { $0.key < $1.key })
-    }
+    @State private var searchTerm: String = ""
+    @State private var searchScope: SearchScope = .title
+    @State private var searchTokens: [Token] = []
 
     var body: some View {
-        List(selection: $selectedBookIDs) {
-            ForEach(booksByInitial, id: \.key) { element in
-                Section(header: Text(String(element.key))) {
-                    ForEach(element.value) { book in
-                        let index = element.value.firstIndex(where: { $0.id == book.id }) ?? 0
-                        BookView(book: book)
-                            .listRowBackground(index % 2 == 0 ? colors[0] : colors[1])
-                            .listRowSeparator(.hidden)
-                    }.onDelete { indexSet in
-                        applicationData.books.remove(atOffsets: indexSet)
-                    }
+        NavigationStack {
+            BookListView(searchTokens: $searchTokens)
+        }
+        .searchable(text: $searchTerm, tokens: $searchTokens, token: { token in
+            Text(token.name)
+        })
+        //.searchable(text: $searchTerm, placement: .navigationBarDrawer(displayMode: .always), prompt: Text("Search books"))
+        //.searchScopes($searchScope, scopes: {
+        //    Text("Title").tag(SearchScope.title)
+        //    Text("Author").tag(SearchScope.author)
+        //})
+        //.searchSuggestions {
+        //    ForEach(applicationData.selectedBooks) { item in
+        //        Text("\(item.title) - \(item.author)").searchCompletion(item.title)
+        //    }
+        //}
+        // Enable search only on submit
+        //.onSubmit(of: .search) {
+        //    let trimmed = searchTerm.trimmingCharacters(in: .whitespaces)
+        //    performSearch(search: trimmed)
+        //}
+        .onChange(of: searchTerm, initial: false) { _, _ in
+            performSearch()
+        }
+        //.onChange(of: searchScope, initial: false) { _, _ in
+        //    performSearch()
+        //}
+        .onChange(of: searchTokens, initial: false) { _, _ in
+            performSearch()
+        }
+    }
+
+    func performSearch() {
+        let search = searchTerm.trimmingCharacters(in: .whitespaces)
+        applicationData.filter(search: search, author: searchTokens.first?.name ?? "")
+    }
+}
+
+struct BookListView: View {
+    @Environment(ApplicationData.self) var applicationData: ApplicationData
+    @Binding var searchTokens: [Token]
+    let colors = [.white, Color(white: 0.95)]
+
+    var body: some View {
+        List(applicationData.indexedBooks, id: \.key) { element in
+            Section(header: Text(String(element.key))) {
+                ForEach(element.value) { book in
+                    let index = element.value.firstIndex(where: { $0.id == book.id }) ?? 0
+                    BookView(book: book)
+                        .listRowBackground(index % 2 == 0 ? colors[0] : colors[1])
+                        .listRowSeparator(.hidden)
+                }.onDelete { indexSet in
+                    applicationData.books.remove(atOffsets: indexSet)
                 }
-                .headerProminence(.increased)
-                .listSectionSeparator(.hidden)
-                .refreshable {
-                    print("Loading new data...")
-                }
+            }
+            .headerProminence(.increased)
+            .listSectionSeparator(.hidden)
+            .refreshable {
+                print("Loading new data...")
             }
         }
         .listStyle(PlainListStyle())
+        .navigationTitle(Text("Books"))
+        .toolbar {
+            let authorList = applicationData.selectedBooks.map { $0.author }
+            let authors = Set(authorList).sorted()
+            Menu(content: {
+                ForEach(authors, id: \.self) { author in
+                    Button(action: {
+                        let token = Token(name: author)
+                        searchTokens.append(token)
+                    }, label: {
+                        Text(author)
+                    })
+                }
+            }, label: {
+                Image(systemName: "pencil.circle")
+            })
+        }
     }
 }
+
 
 struct BookView: View {
     @Environment(ApplicationData.self) var applicationData: ApplicationData

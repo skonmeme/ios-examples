@@ -59,6 +59,7 @@
 		ED4409232C89FC0D00F137E7 /* PickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PickerView.swift; sourceTree = "<group>"; };
 		ED4409252C89FD9700F137E7 /* DatePickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatePickerView.swift; sourceTree = "<group>"; };
 		ED4409272C89FE9F00F137E7 /* FormView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormView.swift; sourceTree = "<group>"; };
+		ED4409292C8A967400F137E7 /* info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = info.plist; sourceTree = "<group>"; };
 		EDB6FFB52C89802800D4EEAE /* ApplicationData.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ApplicationData.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -90,6 +91,7 @@
 		ED22C5852C89389C0084A7A4 = {
 			isa = PBXGroup;
 			children = (
+				ED4409292C8A967400F137E7 /* info.plist */,
 				ED22C5902C89389C0084A7A4 /* ios-examples */,
 				ED22C5A12C89389E0084A7A4 /* ios-examplesTests */,
 				ED22C5AB2C89389E0084A7A4 /* ios-examplesUITests */,

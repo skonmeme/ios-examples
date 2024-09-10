@@ -16,7 +16,52 @@ struct Book: Identifiable, Hashable {
 }
 
 @Observable class ApplicationData {
-    var books: [Book] = []
+    @ObservationIgnored var books: [Book] {
+        didSet {
+            selectedBooks = find(search: "")
+        }
+    }
+    var selectedBooks: [Book] = [] {
+        didSet {
+            indexedBooks = getIndexedBooks()
+        }
+    }
+    var indexedBooks: [(key: String, value: [Book])] = []
+
+    private func find(search: String, author: String = "") -> [Book] {
+        if search.isEmpty {
+            return books.map { $0 }
+        } else {
+            return books.filter( { item in
+                (author.isEmpty || author == item.author) &&
+                    item.title.localizedStandardContains(search)
+            })
+        }
+    }
+
+    func filter(search: String, author: String) {
+        selectedBooks = find(search: search, author: author)
+    }
+
+    func getInitial(title: String) -> String {
+        let first = String(title.prefix(1))
+        if first.range(of: "\\p{Hangul}", options: .regularExpression) != nil {
+            let firstConsonant = first.unicodeScalars.first!.value
+            if firstConsonant >= 0xAC00 && firstConsonant <= 0xD7A3 {
+                let index = (firstConsonant - 0xAC00) / 28 / 21
+                let consonant = UnicodeScalar(0x1100 + index)!
+                return String(consonant)
+            }
+        }
+        return first.uppercased()
+    }
+
+    func getIndexedBooks() -> [(key: String, value: [Book])] {
+        let listGroup: [String: [Book]] = Dictionary(grouping: selectedBooks, by: { book in
+            return getInitial(title: book.title)
+        })
+        return listGroup.sorted(by: { $0.key < $1.key })
+    }
 
     init() {
         books = [
@@ -35,5 +80,6 @@ struct Book: Identifiable, Hashable {
             Book(title: "Ending Aging", author: "Aubrey de Grey", cover: "book12", year: 2007, selected: false),
             Book(title: "호눌이시여", author: "Unknown", cover: "nocover", year: 2025, selected: false)
         ]
+        selectedBooks = find(search: "")
     }
 }
