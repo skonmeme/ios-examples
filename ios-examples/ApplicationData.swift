@@ -43,6 +43,24 @@ struct Book: Identifiable, Hashable {
         selectedBooks = find(search: search, author: author)
     }
 
+    func delete(key: String, atOffsets offsets: IndexSet, search: String, author: String) {
+        for offset in offsets {
+            var found: Book?
+            for book in indexedBooks {
+                if book.key == key {
+                    found = book.value[offset]
+                    break
+                }
+            }
+            if let book = found {
+                books = books.filter( { item in
+                    item.title != book.title || item.author != book.author || item.author != book.author
+                })
+            }
+        }
+        filter(search: search, author: author)
+    }
+
     func getInitial(title: String) -> String {
         let first = String(title.prefix(1))
         if first.range(of: "\\p{Hangul}", options: .regularExpression) != nil {

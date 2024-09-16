@@ -25,7 +25,7 @@ struct ContentView: View {
 
     var body: some View {
         NavigationStack {
-            BookListView(searchTokens: $searchTokens)
+            BookListView(searchTerm: $searchTerm, searchTokens: $searchTokens)
         }
         .searchable(text: $searchTerm, tokens: $searchTokens, token: { token in
             Text(token.name)
@@ -64,7 +64,11 @@ struct ContentView: View {
 
 struct BookListView: View {
     @Environment(ApplicationData.self) var applicationData: ApplicationData
+    @Binding var searchTerm: String
     @Binding var searchTokens: [Token]
+    @State private var showSheet: Bool = false
+    @State private var editItem: Book?
+
     let colors = [.white, Color(white: 0.95)]
 
     var body: some View {
@@ -72,12 +76,22 @@ struct BookListView: View {
             Section(header: Text(String(element.key))) {
                 ForEach(element.value) { book in
                     let index = element.value.firstIndex(where: { $0.id == book.id }) ?? 0
-                    BookView(book: book)
-                        .listRowBackground(index % 2 == 0 ? colors[0] : colors[1])
-                        .listRowSeparator(.hidden)
-                }.onDelete { indexSet in
-                    applicationData.books.remove(atOffsets: indexSet)
+                    NavigationLink(destination: {
+                        DetailView(book: book)
+                    }, label: {
+                        BookView(book: book)
+                            .listRowBackground(index % 2 == 0 ? colors[0] : colors[1])
+                            .listRowSeparator(.hidden)
+                            .onTapGesture {
+                                editItem = book
+                            }
+                    })
                 }
+                .onDelete { indexSet in
+                    let search = searchTerm.trimmingCharacters(in: .whitespaces)
+                    applicationData.delete(key: element.key, atOffsets: indexSet, search: search, author: searchTokens.first?.name ?? "")
+                }
+
             }
             .headerProminence(.increased)
             .listSectionSeparator(.hidden)
@@ -103,6 +117,35 @@ struct BookListView: View {
                 Image(systemName: "pencil.circle")
             })
         }
+        .toolbar {
+            EditButton()
+        }
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                NavigationLink(destination: SettingsView(), label: {
+                    Image(systemName: "gearshape")
+                })
+            }
+        }
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button(action: {
+                    showSheet = true
+                }, label: {
+                    Image(systemName: "plus")
+                })
+            }
+        }
+        .sheet(isPresented: $showSheet, content: {
+            AddBookView()
+            .interactiveDismissDisabled(false)
+            .presentationBackground(.thinMaterial)
+        })
+        .sheet(item: $editItem, content: { item in
+            AddBookView(book: item)
+            .interactiveDismissDisabled(false)
+            .presentationBackground(.thinMaterial)
+        })
     }
 }
 
@@ -128,22 +171,6 @@ struct BookView: View {
             }
             .padding(.top, 5)
             Spacer()
-
-            Button(action: {
-                removeBook(book: book)
-            }, label: {
-                Image(systemName: "trash")
-                    .foregroundColor(.red)
-                    .frame(width: 30, height: 30)
-            })
-            .padding(.top, 5)
-            .buttonStyle(PlainButtonStyle())
-        }
-    }
-
-    func removeBook(book: Book) {
-        if let index = applicationData.books.firstIndex(where: { $0.id == book.id }) {
-            applicationData.books.remove(at: index)
         }
     }
 }
